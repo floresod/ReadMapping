@@ -1,0 +1,7 @@
+# Ignore Snakemake intermediate files
+workflow/.snakemake/
+
+# Igonere Examples 
+Examples/
+resources/Data/
+

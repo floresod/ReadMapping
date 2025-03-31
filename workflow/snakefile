@@ -1,0 +1,98 @@
+###################################
+####### SHORT-READS MAPPING #######
+###################################
+
+import glob
+
+##########################
+#### Global Variables ####
+##########################
+
+SAMPLE, RF = glob_wildcards("../resources/Data/{sample}_{rf}.fastq.gz")
+
+#########################
+#### General Outputs ####
+#########################
+
+rule all:
+    input:
+        expand("../results/AlignmentResults/{sample}.stat", sample=SAMPLE),
+        expand("../results/AlignmentResults/{sample}.cover", sample=SAMPLE),
+        expand("../results/AlignmentResults/{sample}.depth", sample=SAMPLE)
+
+#####################
+#### Merge Reads ####
+#####################
+
+rule seqtk_mergepe:
+    input:
+        r1 = "../resources/Data/{sample}_R1.fastq.gz",
+        r2 = "../resources/Data/{sample}_R2.fastq.gz"
+    output:
+        merged = "../resources/Outputs/mergepe/{sample}.fastq.gz"
+    log:
+        "../resources/Logs/mergepe/{sample}.log"
+    params:
+        command = "mergepe",
+        compress_lvl = 9
+    threads:
+        4
+    wrapper:
+        "v4.6.0/bio/seqtk"
+
+#####################
+#### BWA Mapping ####
+#####################
+
+rule bwa_mapping:
+    input:
+        r1 = "../resources/Data/{sample}_R1.fastq.gz",
+        r2 = "../resources/Data/{sample}_R2.fastq.gz"
+    output:
+        bam_out = "../results/Aligned/{sample}.bam"
+    params:
+        database = "../resources/Databases/"
+    log:
+        "../resources/Logs/bwa/{sample}.log"
+    threads:
+        50
+    resources:
+        threads = 50
+    conda:
+        "../envs/readmapping_env.yaml"
+    shell:
+        """
+        mkdir -p ../results/Aligned
+
+        bwa mem {params.database} \
+            {input.r1} \
+            {input.r2} \
+            -t {threads} | samtools sort -@ {threads} | samtools view -@ {threads} \
+            -o {output.bam_out} > {log} 2>&1
+        """
+
+#############################
+#### Coverage Statistics ####
+#############################
+
+rule coverage:
+    input:
+        rules.bwa_mapping.output.bam_out
+    output:
+        stats_report = "../results/AlignmentResults/{sample}.stat",
+        cover_report = "../results/AlignmentResults/{sample}.cover",
+        depth_report = "../results/AlignmentResults/{sample}.depth"
+    log:
+        "../resources/Logs/Coverage/{sample}.log"
+    threads:
+        20
+    conda:
+        "../envs/readmapping_env.yaml"
+    shell:
+        """
+        samtools index {input}
+        samtools flagstat {input} > {output.stats_report}
+        samtools coverage {input} > {output.cover_report}
+        samtools depth -aa {input} > {output.depth_report}
+        """
+
