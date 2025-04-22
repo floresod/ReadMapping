@@ -31,7 +31,7 @@ rule bwa_mapping:
     output:
         bam_out = "../results/Aligned/{sample}.bam"
     params:
-        database = "../resources/Databases/"
+        database = "../resources/Databases/sgi_bgc/"
     log:
         "../resources/Logs/bwa/{sample}.log"
     threads:
