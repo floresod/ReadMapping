@@ -21,26 +21,6 @@ rule all:
         expand("../results/AlignmentResults/{sample}.depth", sample=SAMPLE)
 
 #####################
-#### Merge Reads ####
-#####################
-
-rule seqtk_mergepe:
-    input:
-        r1 = "../resources/Data/{sample}_R1.fastq.gz",
-        r2 = "../resources/Data/{sample}_R2.fastq.gz"
-    output:
-        merged = "../resources/Outputs/mergepe/{sample}.fastq.gz"
-    log:
-        "../resources/Logs/mergepe/{sample}.log"
-    params:
-        command = "mergepe",
-        compress_lvl = 9
-    threads:
-        4
-    wrapper:
-        "v4.6.0/bio/seqtk"
-
-#####################
 #### BWA Mapping ####
 #####################
 
